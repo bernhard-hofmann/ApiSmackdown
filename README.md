@@ -23,6 +23,20 @@ npm init
 npm install express --save
 ```
 
+### dotnet (6.0 rc1 minimal API)
+
+Was created with
+
+```bash
+$HOME/dotnet/dotnet new web -o dotnet-6
+```
+
+Run it with
+
+```bash
+$HOME/dotnet/dotnet run
+```
+
 ### k6 (Load testing)
 
 Follow [the setup on the k6 website](https://k6.io/docs/getting-started/installation/).
@@ -31,7 +45,7 @@ Follow [the setup on the k6 website](https://k6.io/docs/getting-started/installa
 
 To save the reader time, I'll publish results here. Note, these are from my laptop and are, as such, completely non-scientific. They may offer the reader some insight because the tests will be run one after the other at the same time on the same hardware.
 
-```
+```plaintext
 bernhard@Latitude-5591:~/github/bernhard-hofmann/ApiSmackdown/k6$ k6 run go-fiber.js
 
           /\      |‾‾| /‾‾/   /‾‾/
@@ -103,4 +117,42 @@ default ✓ [======================================] 10 VUs  30s
      iterations.....................: 621677 20721.795817/s
      vus............................: 10     min=10         max=10
      vus_max........................: 10     min=10         max=10
+
+
+bernhard@Latitude-5591:~/github/bernhard-hofmann/ApiSmackdown/k6$ k6 run dotnet-6.js
+
+          /\      |‾‾| /‾‾/   /‾‾/
+     /\  /  \     |  |/  /   /  /
+    /  \/    \    |     (   /   ‾‾\
+   /          \   |  |\  \ |  (‾)  |
+  / __________ \  |__| \__\ \_____/ .io
+
+  execution: local
+     script: dotnet-6.js
+     output: -
+
+  scenarios: (100.00%) 1 scenario, 10 max VUs, 1m0s max duration (incl. graceful stop):
+           * default: 10 looping VUs for 30s (gracefulStop: 30s)
+
+
+running (0m30.0s), 00/10 VUs, 1653449 complete and 0 interrupted iterations
+default ✓ [======================================] 10 VUs  30s
+
+     data_received..................: 293 MB  9.8 MB/s
+     data_sent......................: 132 MB  4.4 MB/s
+     http_req_blocked...............: avg=1.83µs   min=572ns   med=1.39µs   max=6.85ms  p(90)=1.8µs    p(95)=2.43µs
+     http_req_connecting............: avg=0ns      min=0s      med=0s       max=93.52µs p(90)=0s       p(95)=0s
+     http_req_duration..............: avg=131.28µs min=46.58µs med=100.58µs max=44.75ms p(90)=182.64µs p(95)=244.4µs
+       { expected_response:true }...: avg=131.28µs min=46.58µs med=100.58µs max=44.75ms p(90)=182.64µs p(95)=244.4µs
+     http_req_failed................: 0.00%   ✓ 0            ✗ 1653449
+     http_req_receiving.............: avg=23.93µs  min=6.89µs  med=16.32µs  max=15.77ms p(90)=22.94µs  p(95)=27.93µs
+     http_req_sending...............: avg=8.16µs   min=2.97µs  med=6.39µs   max=14.09ms p(90)=8.07µs   p(95)=11.42µs
+     http_req_tls_handshaking.......: avg=0s       min=0s      med=0s       max=0s      p(90)=0s       p(95)=0s
+     http_req_waiting...............: avg=99.18µs  min=30.45µs med=74.95µs  max=44.65ms p(90)=149.28µs p(95)=199.14µs
+     http_reqs......................: 1653449 55113.291313/s
+     iteration_duration.............: avg=175.74µs min=68.23µs med=138.04µs max=44.99ms p(90)=231.55µs p(95)=309µs
+     iterations.....................: 1653449 55113.291313/s
+     vus............................: 10      min=10         max=10
+     vus_max........................: 10      min=10         max=10
+
 ```
