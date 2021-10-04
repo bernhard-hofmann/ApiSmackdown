@@ -156,3 +156,5 @@ default ✓ [======================================] 10 VUs  30s
      vus_max........................: 10      min=10         max=10
 
 ```
+
+![Chart of iterations](IterationsChart.png)
