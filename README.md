@@ -18,6 +18,7 @@ go run main.go
 ### Node (Express)
 
 ```bash
+cd node-express
 npm init
 npm install express --save
 ```
