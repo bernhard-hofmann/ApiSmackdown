@@ -32,7 +32,7 @@ Follow [the setup on the k6 website](https://k6.io/docs/getting-started/installa
 To save the reader time, I'll publish results here. Note, these are from my laptop and are, as such, completely non-scientific. They may offer the reader some insight because the tests will be run one after the other at the same time on the same hardware.
 
 ```
-$ k6 run go-fiber.js
+bernhard@Latitude-5591:~/github/bernhard-hofmann/ApiSmackdown/k6$ k6 run go-fiber.js
 
           /\      |‾‾| /‾‾/   /‾‾/
      /\  /  \     |  |/  /   /  /
@@ -48,27 +48,27 @@ $ k6 run go-fiber.js
            * default: 10 looping VUs for 30s (gracefulStop: 30s)
 
 
-running (0m30.0s), 00/10 VUs, 300 complete and 0 interrupted iterations
+running (0m30.0s), 00/10 VUs, 2329701 complete and 0 interrupted iterations
 default ✓ [======================================] 10 VUs  30s
 
-     data_received..................: 43 kB 1.4 kB/s
-     data_sent......................: 24 kB 799 B/s
-     http_req_blocked...............: avg=12.41µs  min=3.73µs   med=8.24µs   max=153.28µs p(90)=11.01µs  p(95)=13.11µs
-     http_req_connecting............: avg=3.08µs   min=0s       med=0s       max=115.27µs p(90)=0s       p(95)=0s
-     http_req_duration..............: avg=449.57µs min=186.68µs med=444.21µs max=943.07µs p(90)=604.6µs  p(95)=660.59µs
-       { expected_response:true }...: avg=449.57µs min=186.68µs med=444.21µs max=943.07µs p(90)=604.6µs  p(95)=660.59µs
-     http_req_failed................: 0.00% ✓ 0        ✗ 300
-     http_req_receiving.............: avg=86.53µs  min=19.98µs  med=87.51µs  max=180.8µs  p(90)=107.95µs p(95)=117.73µs
-     http_req_sending...............: avg=39.68µs  min=18.87µs  med=35.46µs  max=311.38µs p(90)=44.16µs  p(95)=50.94µs
-     http_req_tls_handshaking.......: avg=0s       min=0s       med=0s       max=0s       p(90)=0s       p(95)=0s
-     http_req_waiting...............: avg=323.35µs min=112.44µs med=314.58µs max=689.05µs p(90)=455.2µs  p(95)=512.46µs
-     http_reqs......................: 300   9.984912/s
-     iteration_duration.............: avg=1s       min=1s       med=1s       max=1s       p(90)=1s       p(95)=1s
-     iterations.....................: 300   9.984912/s
-     vus............................: 10    min=10     max=10
-     vus_max........................: 10    min=10     max=10
+     data_received..................: 331 MB  11 MB/s
+     data_sent......................: 186 MB  6.2 MB/s
+     http_req_blocked...............: avg=1.51µs  min=646ns   med=1.34µs   max=2.74ms   p(90)=1.74µs   p(95)=2.19µs
+     http_req_connecting............: avg=0ns     min=0s      med=0s       max=234.17µs p(90)=0s       p(95)=0s
+     http_req_duration..............: avg=82.88µs min=27.63µs med=73.66µs  max=9.31ms   p(90)=113.01µs p(95)=131.31µs
+       { expected_response:true }...: avg=82.88µs min=27.63µs med=73.66µs  max=9.31ms   p(90)=113.01µs p(95)=131.31µs
+     http_req_failed................: 0.00%   ✓ 0            ✗ 2329701
+     http_req_receiving.............: avg=16.5µs  min=5.36µs  med=14.69µs  max=7.76ms   p(90)=18.63µs  p(95)=23.29µs
+     http_req_sending...............: avg=6.69µs  min=2.83µs  med=6.2µs    max=5.75ms   p(90)=7.58µs   p(95)=9.2µs
+     http_req_tls_handshaking.......: avg=0s      min=0s      med=0s       max=0s       p(90)=0s       p(95)=0s
+     http_req_waiting...............: avg=59.67µs min=15.92µs med=51.95µs  max=9.26ms   p(90)=88.42µs  p(95)=101.33µs
+     http_reqs......................: 2329701 77654.472525/s
+     iteration_duration.............: avg=123.6µs min=47.97µs med=107.48µs max=426ms    p(90)=151.25µs p(95)=181.39µs
+     iterations.....................: 2329701 77654.472525/s
+     vus............................: 10      min=10         max=10
+     vus_max........................: 10      min=10         max=10
 
-$ k6 run node-express.js
+bernhard@Latitude-5591:~/github/bernhard-hofmann/ApiSmackdown/k6$ k6 run node-express.js
 
           /\      |‾‾| /‾‾/   /‾‾/
      /\  /  \     |  |/  /   /  /
@@ -84,23 +84,23 @@ $ k6 run node-express.js
            * default: 10 looping VUs for 30s (gracefulStop: 30s)
 
 
-running (0m30.1s), 00/10 VUs, 300 complete and 0 interrupted iterations
+running (0m30.0s), 00/10 VUs, 621677 complete and 0 interrupted iterations
 default ✓ [======================================] 10 VUs  30s
 
-     data_received..................: 69 kB 2.3 kB/s
-     data_sent......................: 24 kB 798 B/s
-     http_req_blocked...............: avg=13.26µs min=1.06µs   med=7.26µs  max=779.1µs  p(90)=9.92µs   p(95)=13.01µs
-     http_req_connecting............: avg=4.94µs  min=0s       med=0s      max=754.41µs p(90)=0s       p(95)=0s
-     http_req_duration..............: avg=1.89ms  min=223.27µs med=1.65ms  max=7.27ms   p(90)=3.26ms   p(95)=4.51ms
-       { expected_response:true }...: avg=1.89ms  min=223.27µs med=1.65ms  max=7.27ms   p(90)=3.26ms   p(95)=4.51ms
-     http_req_failed................: 0.00% ✓ 0        ✗ 300
-     http_req_receiving.............: avg=82.62µs min=10.98µs  med=89.79µs max=316.55µs p(90)=137.49µs p(95)=182.18µs
-     http_req_sending...............: avg=36.61µs min=4.7µs    med=32.57µs max=304.35µs p(90)=46.43µs  p(95)=53.62µs
-     http_req_tls_handshaking.......: avg=0s      min=0s       med=0s      max=0s       p(90)=0s       p(95)=0s
-     http_req_waiting...............: avg=1.77ms  min=203.22µs med=1.57ms  max=7.12ms   p(90)=3.2ms    p(95)=4.38ms
-     http_reqs......................: 300   9.973763/s
-     iteration_duration.............: avg=1s      min=1s       med=1s      max=1s       p(90)=1s       p(95)=1s
-     iterations.....................: 300   9.973763/s
-     vus............................: 10    min=10     max=10
-     vus_max........................: 10    min=10     max=10
+     data_received..................: 143 MB 4.8 MB/s
+     data_sent......................: 50 MB  1.7 MB/s
+     http_req_blocked...............: avg=951ns    min=618ns    med=763ns    max=493.02µs p(90)=1.33µs   p(95)=1.65µs
+     http_req_connecting............: avg=0ns      min=0s       med=0s       max=84.06µs  p(90)=0s       p(95)=0s
+     http_req_duration..............: avg=455.68µs min=79.53µs  med=382.11µs max=5.91ms   p(90)=748.61µs p(95)=813.53µs
+       { expected_response:true }...: avg=455.68µs min=79.53µs  med=382.11µs max=5.91ms   p(90)=748.61µs p(95)=813.53µs
+     http_req_failed................: 0.00%  ✓ 0            ✗ 621677
+     http_req_receiving.............: avg=12.59µs  min=6.02µs   med=10.42µs  max=3.98ms   p(90)=16.86µs  p(95)=20.11µs
+     http_req_sending...............: avg=4.42µs   min=2.93µs   med=3.54µs   max=1.7ms    p(90)=5.84µs   p(95)=6.93µs
+     http_req_tls_handshaking.......: avg=0s       min=0s       med=0s       max=0s       p(90)=0s       p(95)=0s
+     http_req_waiting...............: avg=438.66µs min=52.68µs  med=366.53µs max=4.06ms   p(90)=732.7µs  p(95)=794.53µs
+     http_reqs......................: 621677 20721.795817/s
+     iteration_duration.............: avg=479.62µs min=115.99µs med=404.48µs max=5.94ms   p(90)=771.18µs p(95)=839.84µs
+     iterations.....................: 621677 20721.795817/s
+     vus............................: 10     min=10         max=10
+     vus_max........................: 10     min=10         max=10
 ```
