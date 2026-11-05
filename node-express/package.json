@@ -1,14 +1,17 @@
 {
   "name": "node-express",
-  "version": "1.0.0",
-  "description": "",
+  "version": "2.0.0",
+  "private": true,
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "engines": {
+    "node": ">=26"
   },
-  "author": "",
-  "license": "ISC",
+  "scripts": {
+    "start": "NODE_ENV=production node index.js",
+    "start:cluster": "NODE_ENV=production node cluster.js"
+  },
+  "license": "MIT",
   "dependencies": {
-    "express": "^4.17.1"
+    "express": "^5.3.0"
   }
 }

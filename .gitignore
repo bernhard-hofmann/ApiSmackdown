@@ -1,0 +1,14 @@
+# Build output and dependencies
+node_modules/
+bin/
+obj/
+go-stdlib/server
+target/
+.venv/
+__pycache__/
+
+# Benchmark output
+results/*.json
+results/logs/
+results/info/
+!results/2021/

@@ -1,0 +1,28 @@
+{
+    "name": "ApiSmackdown",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/go:1": {
+            "version": "1.27"
+        },
+        "ghcr.io/devcontainers/features/dotnet:2": {
+            "version": "10.0"
+        },
+        "ghcr.io/devcontainers/features/rust:1": {
+            "version": "1.99"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode-remote.remote-containers",
+                "golang.go",
+                "ms-dotnettools.csharp",
+                "rust-lang.rust-analyzer",
+                "ms-python.python"
+            ]
+        }
+    }
+}

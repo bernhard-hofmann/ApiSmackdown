@@ -2,48 +2,142 @@
 
 This repo is intended to allow comparison of the performance and simplicity (maintenance costs) of various API backend languages and frameworks.
 
+Every server answers `GET /` with the same 25-byte `text/plain; charset=utf-8` body and the same minimal headers (`Content-Type`, `Content-Length`, `Date`), so the bytes on the wire are comparable. The one exception is Node, which always adds `Connection` and `Keep-Alive` headers on keep-alive connections (about 40 bytes).
+
+| Server | Folder | Port | Versions |
+|---|---|---|---|
+| Go, standard library `net/http` | `go-stdlib/` | 3000 | Go 1.27 |
+| Node, Express | `node-express/` | 3001 | Node 26 LTS, Express 5 |
+| .NET minimal API | `dotnet-10/` | 3002 | .NET 10 LTS |
+| Python, FastAPI on Uvicorn | `python-fastapi/` | 3003 | Python 3.15, FastAPI 0.162, Uvicorn 0.54 |
+| Rust, axum | `rust-axum/` | 3004 | Rust 1.99, axum 0.8, Tokio 1.54 |
+
+The devcontainer installs Go, Node, the .NET SDK, Rust, uv (for Python) and k6, so the setup below works out of the box there.
+
 ## Setups
 
-### Go (Fiber)
+### Go (standard library)
 
-Setup modules and get the fiber module:
+Since Go 1.22, `net/http` routes by method and path (`"GET /{$}"`), so no framework is needed and there are no dependencies.
 
 ```bash
-cd go-fiber
-go mod init github.com/bernhard-hofmann/ApiSmackdown
-go get github.com/gofiber/fiber
-go run main.go
+cd go-stdlib
+go build -o server . && ./server
 ```
+
+The 2021 version used Fiber, which runs on fasthttp, not `net/http`. The Go numbers therefore aren't directly comparable with the 2021 results.
 
 ### Node (Express)
 
 ```bash
 cd node-express
-npm init
-npm install express --save
+npm ci
+npm start               # one process, one CPU core
+npm run start:cluster   # one worker per CPU core (set WORKERS=n to change)
 ```
 
-### dotnet (6.0 rc1 minimal API)
+Node runs JavaScript on a single thread, while Go and .NET use every core. Benchmark both modes and say which one you report.
 
-Was created with
+### .NET (10 minimal API)
+
+Always benchmark a Release build without the Development launch profile:
 
 ```bash
-$HOME/dotnet/dotnet new web -o dotnet-6
+cd dotnet-10
+dotnet run -c Release --no-launch-profile
 ```
 
-Run it with
+### Python (FastAPI on Uvicorn)
+
+[uv](https://docs.astral.sh/uv/) installs Python 3.15 and the locked dependencies:
 
 ```bash
-$HOME/dotnet/dotnet run
+cd python-fastapi
+uv sync
+.venv/bin/uvicorn app:app --port 3003 --workers $(nproc) --no-access-log --no-server-header
 ```
 
-### k6 (Load testing)
+Python, like Node, runs Python code on one core per process (the GIL), so Uvicorn runs one worker process per core. Set `WORKERS` to change that in the benchmark script.
 
-Follow [the setup on the k6 website](https://k6.io/docs/getting-started/installation/).
+### Rust (axum)
+
+```bash
+cd rust-axum
+cargo build --release && ./target/release/rust-axum
+```
+
+Tokio, axum's runtime, uses every core by default.
+
+### k6 (load testing)
+
+k6 v2 is installed in the devcontainer. Otherwise follow [the k6 installation guide](https://grafana.com/docs/k6/latest/set-up/install-k6/).
+
+## Running the benchmark
+
+One command builds each server, starts it, runs k6 against it, and stops it again, so only one server runs at a time:
+
+```bash
+k6/run-all.sh            # every server: 1 warm-up + 3 saved runs each
+k6/run-all.sh --check    # start each server, show its response and headers, stop it (no k6)
+```
+
+Optional settings:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `TARGETS` | `go node node-cluster dotnet python rust` | Servers to test, in order |
+| `SCENARIO` | `steady` | `steady` is 10 VUs for 30s, same as 2021. `ramp` goes from 10 to 100 VUs. |
+| `RUNS` | `3` | Saved runs per server, after the warm-up |
+| `NODE_BIN` | `/opt/node-26/bin/node` if present, else `node` | Node binary |
+| `WORKERS` | one per core | Worker processes for `node-cluster` and `python` |
+| `SERVER_CPUS`, `K6_CPUS` | unset | Pin the server and k6 to separate cores, e.g. `SERVER_CPUS=0-3 K6_CPUS=4-7` |
+
+Example: `SCENARIO=ramp TARGETS="go dotnet" k6/run-all.sh`
+
+- k6 summaries go to `results/<target>-<scenario>-<n>.json`. Rerunning a server replaces its earlier runs for that scenario.
+- Versions and machine details go to `results/info/<target>-<scenario>.json`.
+- Server output goes to `results/logs/<target>.log`.
+- At the end, a chart of every saved result for the scenario is drawn to `results/charts/<date>_<time>-<scenario>.svg` (UTC), and the Results section below is updated to show it.
+- A run fails if any request errors or returns the wrong body.
+- The script stops if a server's port is already in use.
+
+To test one server you started yourself, run the k6 script directly, e.g. `k6 run -e TARGET=go k6/smackdown.js`.
+
+### Chart
+
+`k6/chart.js` turns the saved results into a stand-alone SVG: one bar per server (median requests per second, with p95 latency and the range across runs), the test settings and machine, and a "Key numbers" section calculated from the results (ranking, latency, run-to-run variation, errors). `run-all.sh` runs it automatically; to redraw by hand:
+
+```bash
+node k6/chart.js                              # results/charts/<date>_<time>-steady.svg
+node k6/chart.js --scenario ramp              # results/charts/<date>_<time>-ramp.svg
+node k6/chart.js --notes notes.txt            # add a "Notes" section
+node k6/chart.js --out ResultsChart.svg       # one-off file elsewhere; README left alone
+node k6/chart.js --readme-only                # just point the README at the newest chart
+```
+
+Every chart is kept in `results/charts/`, and the README's Results section always shows the newest one (the block between the `latest-chart` comments is rewritten each time, so don't edit inside it).
+
+The chart includes every server with saved results for that scenario, so servers can be run separately (e.g. `TARGETS=rust k6/run-all.sh`) and still end up on the same chart.
+
+Interpretation, such as why results changed, is up to you: put it in a notes file, one note per line. A note can start with a bold lead, written as `**Like this.**`. Pass the file with `--notes`, or set `CHART_NOTES=notes.txt` when running `run-all.sh`.
+
+### Making runs fair
+
+- Leave nothing else busy on the machine while it runs.
+- k6 needs CPU too. On a single machine, set `SERVER_CPUS` and `K6_CPUS` so they don't compete for the same cores.
+- Report the median of the saved runs, along with the hardware and the exact versions (`go version`, `node -v`, `dotnet --version`, `k6 version`).
 
 ## Results
 
-To save the reader time, I'll publish results here. Note, these are from my laptop and are, as such, completely non-scientific. They may offer the reader some insight because the tests will be run one after the other at the same time on the same hardware.
+<!-- latest-chart:start -->
+Latest results (2026-11-05 13:18 UTC, steady scenario). Earlier charts are in [`results/charts/`](results/charts/).
+
+![Latest results](results/charts/2026-11-05_13-18-32-steady.svg)
+<!-- latest-chart:end -->
+
+### 2021 results (Go 1.17 + Fiber v1, Node + Express 4, .NET 6 RC1)
+
+These are from my laptop and are, as such, completely non-scientific. The tests ran one after the other on the same hardware. Note that the .NET server ran a Debug build with the Development profile, which held its numbers back.
 
 ```plaintext
 bernhard@Latitude-5591:~/github/bernhard-hofmann/ApiSmackdown/k6$ k6 run go-fiber.js

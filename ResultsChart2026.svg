@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 696" width="920" height="696" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<title id="t">API Smackdown, November 2026: requests per second</title>
+<desc id="d">Median requests per second over 3 runs: Go 154,049; .NET 130,470; Node, all cores 125,545; Node, one process 112,756.</desc>
+<style>
+  svg { --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --grid:#e1e0d9; --base:#c3c2b7; --bar:#2a78d6; --hover:#f1f0ec; }
+  @media (prefers-color-scheme: dark) {
+    svg { --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --grid:#2c2c2a; --base:#383835; --bar:#3987e5; --hover:#242423; }
+  }
+  .bg { fill: var(--surface); }
+  .grid { stroke: var(--grid); stroke-width: 1; }
+  .base, .rule { stroke: var(--base); stroke-width: 1; }
+  .bar { fill: var(--bar); }
+  .hit { fill: transparent; }
+  .row:hover .hit, .row:focus .hit { fill: var(--hover); }
+  .row:focus { outline: none; }
+  text { fill: var(--ink); }
+  .h1 { font-size: 22px; font-weight: 700; }
+  .h2 { font-size: 16px; font-weight: 700; }
+  .meta, .sub, .tick, .axis-title { fill: var(--ink2); }
+  .meta { font-size: 13px; }
+  .name { font-size: 15px; font-weight: 600; }
+  .sub { font-size: 12px; }
+  .value { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tick, .axis-title { font-size: 12px; }
+  .body { font-size: 13.5px; }
+  .lead { font-weight: 700; }
+  .dot { fill: var(--ink2); }
+</style>
+<rect class="bg" width="100%" height="100%"/>
+<text class="h1" x="24" y="40">API Smackdown, November 2026: requests per second</text>
+<text class="meta" x="24" y="64">“Hello world” GET, identical 25-byte response · load from k6 2.3, 10 virtual users for 30 s, 1 warm-up + 3 measured runs each</text>
+<text class="meta" x="24" y="83">AMD Ryzen 7 9800X3D (8 cores / 16 threads); server and load tester on the same machine, cores not pinned</text>
+<line class="base" x1="210" x2="210" y1="112" y2="360"/>
+<text class="tick" x="210" y="378" text-anchor="middle">0</text>
+<line class="grid" x1="335" x2="335" y1="112" y2="360"/>
+<text class="tick" x="335" y="378" text-anchor="middle">40k</text>
+<line class="grid" x1="460" x2="460" y1="112" y2="360"/>
+<text class="tick" x="460" y="378" text-anchor="middle">80k</text>
+<line class="grid" x1="585" x2="585" y1="112" y2="360"/>
+<text class="tick" x="585" y="378" text-anchor="middle">120k</text>
+<line class="grid" x1="710" x2="710" y1="112" y2="360"/>
+<text class="tick" x="710" y="378" text-anchor="middle">160k</text>
+<text class="axis-title" x="210" y="400">Requests per second, median of 3 runs (higher is better)</text>
+<g class="row" tabindex="0"><title>Go (net/http · Go 1.27): median 154,049 req/s; runs 153,729, 154,049, 154,571; avg latency 36.2 µs, p95 71.2 µs</title>
+<rect class="hit" x="0" y="112" width="920" height="62"/>
+<text class="name" x="196" y="141" text-anchor="end">Go</text>
+<text class="sub" x="196" y="158" text-anchor="end">net/http · Go 1.27</text>
+<path class="bar" d="M210,131 h477.4 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-477.4 z"/>
+<text class="value" x="701.4" y="141">154,049 req/s</text>
+<text class="sub" x="701.4" y="158">p95 71 µs · runs 153.7k–154.6k</text>
+</g>
+<g class="row" tabindex="0"><title>.NET (minimal API · .NET 10): median 130,470 req/s; runs 130,470, 132,791, 130,346; avg latency 48.4 µs, p95 88.7 µs</title>
+<rect class="hit" x="0" y="174" width="920" height="62"/>
+<text class="name" x="196" y="203" text-anchor="end">.NET</text>
+<text class="sub" x="196" y="220" text-anchor="end">minimal API · .NET 10</text>
+<path class="bar" d="M210,193 h403.7 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-403.7 z"/>
+<text class="value" x="627.7" y="203">130,470 req/s</text>
+<text class="sub" x="627.7" y="220">p95 89 µs · runs 130.3k–132.8k</text>
+</g>
+<g class="row" tabindex="0"><title>Node, all cores (Express 5 cluster · Node 26): median 125,545 req/s; runs 125,498, 125,545, 125,795; avg latency 48.2 µs, p95 82.7 µs</title>
+<rect class="hit" x="0" y="236" width="920" height="62"/>
+<text class="name" x="196" y="265" text-anchor="end">Node, all cores</text>
+<text class="sub" x="196" y="282" text-anchor="end">Express 5 cluster · Node 26</text>
+<path class="bar" d="M210,255 h388.3 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-388.3 z"/>
+<text class="value" x="612.3" y="265">125,545 req/s</text>
+<text class="sub" x="612.3" y="282">p95 83 µs · runs 125.5k–125.8k</text>
+</g>
+<g class="row" tabindex="0"><title>Node, one process (Express 5 · Node 26): median 112,756 req/s; runs 115,548, 112,756, 107,123; avg latency 66.1 µs, p95 122.4 µs</title>
+<rect class="hit" x="0" y="298" width="920" height="62"/>
+<text class="name" x="196" y="327" text-anchor="end">Node, one process</text>
+<text class="sub" x="196" y="344" text-anchor="end">Express 5 · Node 26</text>
+<path class="bar" d="M210,317 h348.4 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-348.4 z"/>
+<text class="value" x="572.4" y="327">112,756 req/s</text>
+<text class="sub" x="572.4" y="344">p95 122 µs · runs 107.1k–115.5k</text>
+</g>
+<line class="rule" x1="24" x2="896" y1="418" y2="418"/>
+<text class="h2" x="24" y="452">What to read into it</text>
+<circle class="dot" cx="31" cy="475" r="3"/>
+<text class="body" x="44" y="480"><tspan class="lead">Same order as in 2021, much smaller gaps.</tspan> Go leads, then .NET, then Node. In 2021 Go handled 3.7× Node’s</text>
+<text class="body" x="44" y="500">throughput; now it is about 1.4×.</text>
+<circle class="dot" cx="31" cy="525" r="3"/>
+<text class="body" x="44" y="530"><tspan class="lead">Not a like-for-like comparison with 2021.</tspan> That run used a different machine, Go on the Fiber (fasthttp)</text>
+<text class="body" x="44" y="550">framework, and a Debug build of .NET. Read the gap as narrower, not as “Node caught up”.</text>
+<circle class="dot" cx="31" cy="575" r="3"/>
+<text class="body" x="44" y="580"><tspan class="lead">The load tester is probably the limit, not the servers.</tspan> Node on all cores beat a single Node process by only 11%,</text>
+<text class="body" x="44" y="600">and 10 virtual users share the same 16 threads as the server.</text>
+<circle class="dot" cx="31" cy="625" r="3"/>
+<text class="body" x="44" y="630"><tspan class="lead">Node as a single process varied the most between runs:</tspan> 107k–116k req/s. The others stayed within about 2%.</text>
+<circle class="dot" cx="31" cy="655" r="3"/>
+<text class="body" x="44" y="660"><tspan class="lead">Every run passed.</tspan> All 12 runs had zero failed requests, and every response had the expected body.</text>
+</svg>
