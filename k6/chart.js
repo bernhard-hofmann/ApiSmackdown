@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Turns the saved k6 summaries in results/ into a stand-alone SVG chart.
+// Turns the saved k6 or oha summaries in results/ into a stand-alone SVG chart.
 //
 //   node k6/chart.js                          # steady scenario -> results/charts/<UTC time>-steady.svg
 //   node k6/chart.js --scenario ramp
@@ -70,16 +70,31 @@ function updateReadme() {
 if (args.includes('--readme-only')) process.exit(updateReadme() ? 0 : 1);
 const notesFile = opt('--notes', process.env.CHART_NOTES || '');
 
-// Must match the scenarios in k6/smackdown.js.
+// Fallback load descriptions, used only when results/info/ has none.
 const SCENARIOS = {
-    steady: '10 virtual users for 30 s',
-    ramp: '10 → 100 virtual users over 1 min, then 30 s at 100',
+    steady: 'k6, 10 virtual users for 30 s',
+    ramp: 'k6, 10 → 100 virtual users over 1 min, then 30 s at 100',
+    oha: 'oha, 256 connections for 30 s',
 };
 
-// Display names, in the order used when medians tie.
+// Display names, in the order used when medians tie. "base" is the
+// idiomatic version a tuned one is compared with; "change" explains the
+// tuning on the chart.
 const TARGETS = {
-    go: { name: 'Go', framework: 'net/http' },
+    'rust-epoll': { name: 'Rust (hand-written epoll)', framework: 'no framework', tuned: true,
+        change: 'No framework or async runtime: one thread per core, each with its own listening socket and epoll loop, and the whole response built once a second. Only handles GET; a demonstration of the ceiling, not a web server.' },
+    'rust-tuned': { name: 'Rust (tuned build)', framework: 'axum, tuned build', tuned: true, base: 'rust',
+        change: 'The same axum code, built with link-time optimisation, a single code-generation unit, instructions for this exact CPU, and the mimalloc memory allocator.' },
+    'go-fasthttp': { name: 'Go (fasthttp)', framework: 'fasthttp', tuned: true, base: 'go',
+        change: 'fasthttp instead of net/http: it reuses request and response objects instead of allocating new ones, but is not compatible with the standard library.' },
+    'dotnet-tuned': { name: '.NET (tuned)', framework: 'bare handler', tuned: true, base: 'dotnet',
+        change: 'The slim builder with no logging or routing, one bare request handler, and the response bytes encoded once at startup.' },
+    'node-fastify': { name: 'Node (Fastify, all cores)', framework: 'Fastify cluster', tuned: true, base: 'node-cluster',
+        change: 'Fastify instead of Express, one worker per core. Fastify prepares its routing and responses up front, so less work happens per request.' },
+    'python-granian': { name: 'Python (Granian)', framework: 'Granian (RSGI)', tuned: true, base: 'python',
+        change: 'Granian, a Python server written in Rust, calling a bare app through its own RSGI interface instead of FastAPI on Uvicorn. One worker per core.' },
     rust: { name: 'Rust', framework: 'axum' },
+    go: { name: 'Go', framework: 'net/http' },
     dotnet: { name: '.NET', framework: 'minimal API' },
     'node-cluster': { name: 'Node (all cores)', framework: 'Express cluster' },
     node: { name: 'Node (one process)', framework: 'Express' },
@@ -94,19 +109,34 @@ for (const f of files) {
     if (!m || m[2] !== scenario) continue;
     const file = path.join(RESULTS, f);
     const j = JSON.parse(fs.readFileSync(file, 'utf8'));
-    const M = j.metrics || {};
-    if (!M.http_reqs || !M.http_req_duration) continue;
-    const checks = Object.values((j.root_group && j.root_group.checks) || {});
-    (byTarget[m[1]] ??= []).push({
-        run: Number(m[3]),
-        rps: M.http_reqs.rate,
-        count: M.http_reqs.count,
-        avg: M.http_req_duration.avg * 1000,
-        p95: M.http_req_duration['p(95)'] * 1000,
-        failedRate: M.http_req_failed ? M.http_req_failed.value : 0,
-        checkFails: checks.reduce((n, c) => n + (c.fails || 0), 0),
-        mtime: fs.statSync(file).mtime,
-    });
+    const run = { run: Number(m[3]), mtime: fs.statSync(file).mtime };
+    if (j.summary && j.latencyPercentiles) {
+        // oha: times in seconds; it doesn't check bodies, so check their size
+        const codes = j.statusCodeDistribution || {};
+        const total = Object.values(codes).reduce((a, b) => a + b, 0);
+        Object.assign(run, {
+            rps: j.summary.requestsPerSec,
+            count: total,
+            avg: j.summary.average * 1e6,
+            p95: j.latencyPercentiles.p95 * 1e6,
+            failedRate: 1 - (j.summary.successRate ?? 1) + (total ? 1 - (codes['200'] || 0) / total : 0),
+            checkFails: j.summary.sizePerRequest === 25 && !Object.keys(j.errorDistribution || {}).length ? 0 : 1,
+        });
+    } else {
+        // k6 --summary-export: times in milliseconds
+        const M = j.metrics || {};
+        if (!M.http_reqs || !M.http_req_duration) continue;
+        const checks = Object.values((j.root_group && j.root_group.checks) || {});
+        Object.assign(run, {
+            rps: M.http_reqs.rate,
+            count: M.http_reqs.count,
+            avg: M.http_req_duration.avg * 1000,
+            p95: M.http_req_duration['p(95)'] * 1000,
+            failedRate: M.http_req_failed ? M.http_req_failed.value : 0,
+            checkFails: checks.reduce((n, c) => n + (c.fails || 0), 0),
+        });
+    }
+    (byTarget[m[1]] ??= []).push(run);
 }
 if (!Object.keys(byTarget).length) {
     console.error(`No results for scenario "${scenario}" in ${RESULTS}. Run k6/run-all.sh first.`);
@@ -131,6 +161,7 @@ const rows = Object.entries(byTarget).map(([t, runs]) => {
     return {
         target: t,
         name: meta.name,
+        meta,
         detail,
         info,
         runs,
@@ -160,8 +191,8 @@ const top = rows[0], bottom = rows.at(-1);
 if (rows.length > 1) {
     bullets.push([
         `${top.name} handled the most requests:`,
-        `${fmt(top.med)} req/s, ${(top.med / bottom.med).toFixed(1)}× ${bottom.name} (${fmt(bottom.med)} req/s). ` +
-        `Full order: ${rows.map(r => r.name).join(', ')}.`,
+        `${fmt(top.med)} req/s, ${(top.med / bottom.med).toFixed(1)}× ${bottom.name} (${fmt(bottom.med)} req/s).` +
+        (rows.length <= 6 ? ` Full order: ${rows.map(r => r.name).join(', ')}.` : ''),
     ]);
     const byP95 = [...rows].sort((a, b) => a.p95 - b.p95);
     bullets.push([
@@ -172,6 +203,28 @@ if (rows.length > 1) {
     bullets.push([`${top.name}:`, `${fmt(top.med)} req/s, p95 latency ${Math.round(top.p95)} µs.`]);
 }
 const single = rows.find(r => r.target === 'node'), cluster = rows.find(r => r.target === 'node-cluster');
+const fastest = rows[0];
+const idiomaticRows = rows.filter(r => !r.meta.tuned), tunedRows = rows.filter(r => r.meta.tuned);
+const gains = tunedRows
+    .map(r => ({ r, base: rows.find(b => b.target === r.meta.base) }))
+    .filter(g => g.base)
+    .map(g => ({ ...g, gain: g.r.med / g.base.med - 1 }))
+    .sort((a, b) => b.gain - a.gain);
+if (gains.length) {
+    bullets.push([
+        'Tuning vs the idiomatic version:',
+        gains.map(g => `${g.r.name} ${g.gain >= 0 ? '+' : '−'}${pct(Math.abs(g.gain))}`).join(', ') + '.' +
+        (gains.every(g => g.gain < 0.15) ? ' Small gains across the board suggest the load tester, not the servers, was the limit.' : ''),
+    ]);
+}
+const epoll = rows.find(r => r.target === 'rust-epoll');
+if (epoll && idiomaticRows.length) {
+    const bestIdiomatic = idiomaticRows[0];
+    bullets.push([
+        'The hand-written ceiling:',
+        `${fmt(epoll.med)} req/s, ${(epoll.med / bestIdiomatic.med).toFixed(1)}× the fastest idiomatic server (${bestIdiomatic.name}, ${fmt(bestIdiomatic.med)} req/s).`,
+    ]);
+}
 if (single && cluster) {
     const gain = cluster.med / single.med - 1;
     bullets.push([
@@ -185,10 +238,18 @@ if (multi.length > 1) {
     const spread = r => (r.hi - r.lo) / r.med;
     const wobbly = [...multi].sort((a, b) => spread(b) - spread(a));
     const rest = Math.max(...wobbly.slice(1).map(spread));
-    bullets.push(spread(wobbly[0]) > 2 * rest && spread(wobbly[0]) > 0.03
-        ? [`${wobbly[0].name} varied the most between runs:`,
-           `${k(wobbly[0].lo)}–${k(wobbly[0].hi)} req/s. The others stayed within ${pct(Math.max(rest, 0.01))}.`]
-        : [`Runs were consistent:`, `every server stayed within ${pct(Math.max(spread(wobbly[0]), 0.01))} of its median.`]);
+    const CONSISTENT = 0.03; // max-min within 3% of the median
+    const varied = wobbly.filter(r => spread(r) > CONSISTENT);
+    if (!varied.length) {
+        bullets.push([`Runs were consistent:`, `every server's runs stayed within ${pct(Math.max(spread(wobbly[0]), 0.01))} of its median.`]);
+    } else if (varied.length === 1 || spread(varied[0]) > 2 * rest) {
+        bullets.push([`${varied[0].name} varied the most between runs:`,
+            `${k(varied[0].lo)}–${k(varied[0].hi)} req/s (${pct(spread(varied[0]))} of its median). The others stayed within ${pct(Math.max(rest, 0.01))}.`]);
+    } else {
+        bullets.push([`Some servers varied between runs:`,
+            varied.map(r => `${r.name} ${k(r.lo)}–${k(r.hi)} (${pct(spread(r))})`).join(', ') + '.' +
+            (varied.length < wobbly.length ? ` The others stayed within ${pct(CONSISTENT)}.` : '')]);
+    }
 }
 const totalRuns = rows.reduce((n, r) => n + r.runs.length, 0);
 const failing = rows.filter(r => r.failedRuns);
@@ -217,18 +278,17 @@ const infos = rows.map(r => r.info);
 const first = key => (infos.find(i => i[key]) || {})[key];
 const cpu = first('cpu') || (os.cpus()[0] || {}).model || 'unknown CPU';
 const threads = first('threads') || os.cpus().length;
-const serverCpus = first('server_cpus'), k6Cpus = first('k6_cpus');
-const k6v = first('k6');
+const serverCpus = first('server_cpus'), loadCpus = first('load_cpus') || first('k6_cpus');
+const load = first('load') || (first('k6') ? `k6 ${first('k6')}, ` + SCENARIOS[scenario].replace(/^k6, /, '') : SCENARIOS[scenario] || scenario + ' scenario');
 const when = new Date(Math.max(...rows.map(r => +r.last)));
 const month = when.toLocaleString('en-US', { month: 'long', year: 'numeric' });
 const runCounts = counts.length === 1 ? `${counts[0]} measured run${counts[0] > 1 ? 's' : ''} each` : 'measured runs vary';
-const meta1 = `“Hello world” GET, identical 25-byte response · load from ${k6v ? 'k6 ' + k6v : 'k6'}, ` +
-    `${SCENARIOS[scenario] || scenario + ' scenario'}, 1 warm-up + ${runCounts}`;
+const meta1 = `“Hello world” GET, identical 25-byte response · load from ${load}, 1 warm-up + ${runCounts}`;
 const meta2 = `${cpu} (${threads} threads); server and load tester on the same machine, ` +
-    (serverCpus || k6Cpus ? `server pinned to cores ${serverCpus || 'any'}, k6 to ${k6Cpus || 'any'}` : 'cores not pinned');
+    (serverCpus || loadCpus ? `server pinned to cores ${serverCpus || 'any'}, load tester to ${loadCpus || 'any'}` : 'cores not pinned');
 
 // ---------- layout ----------
-const W = 920, X0 = 210, LABEL_ROOM = 230, PLOT = W - X0 - LABEL_ROOM;
+const W = 960, X0 = 260, LABEL_ROOM = 230, PLOT = W - X0 - LABEL_ROOM;
 const niceStep = max => {
     const raw = max / 4, mag = 10 ** Math.floor(Math.log10(raw));
     return [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw);
@@ -257,9 +317,17 @@ const wrap = (lead, rest, maxW, size) => {
     return lines; // lines[0] follows the bold lead
 };
 
-const PLOT_TOP = 112, ROW = 62, BAR = 24;
+const metaLines = [...wrap('', meta1, W - 48, 13), ...wrap('', meta2, W - 48, 13)];
+const headerBottom = 64 + 19 * (metaLines.length - 1);
+const showLegend = idiomaticRows.length > 0 && tunedRows.length > 0;
+const LEGEND_Y = headerBottom + 21;
+const PLOT_TOP = headerBottom + (showLegend ? 51 : 29), ROW = 62, BAR = 24;
 const plotBottom = PLOT_TOP + ROW * rows.length;
 let s = '';
+if (showLegend) {
+    s += `<rect class="bar" x="${X0}" y="${LEGEND_Y}" width="12" height="12" rx="2"/><text class="legend" x="${X0 + 18}" y="${LEGEND_Y + 10}">Idiomatic</text>\n`;
+    s += `<rect class="bar tuned" x="${X0 + 100}" y="${LEGEND_Y}" width="12" height="12" rx="2"/><text class="legend" x="${X0 + 118}" y="${LEGEND_Y + 10}">Tuned for speed</text>\n`;
+}
 
 for (let v = 0; v <= MAX; v += STEP) {
     const x = sx(v).toFixed(1);
@@ -280,7 +348,7 @@ rows.forEach((r, i) => {
     s += `<rect class="hit" x="0" y="${cy - ROW / 2}" width="${W}" height="${ROW}"/>\n`;
     s += `<text class="name" x="${X0 - 14}" y="${cy - 2}" text-anchor="end">${esc(r.name)}</text>\n`;
     s += `<text class="sub" x="${X0 - 14}" y="${cy + 15}" text-anchor="end">${esc(r.detail)}</text>\n`;
-    s += `<path class="bar" d="M${X0},${y} h${(w - 4).toFixed(1)} a4,4 0 0 1 4,4 v${BAR - 8} a4,4 0 0 1 -4,4 h-${(w - 4).toFixed(1)} z"/>\n`;
+    s += `<path class="bar${r.meta.tuned ? ' tuned' : ''}" d="M${X0},${y} h${(w - 4).toFixed(1)} a4,4 0 0 1 4,4 v${BAR - 8} a4,4 0 0 1 -4,4 h-${(w - 4).toFixed(1)} z"/>\n`;
     s += `<text class="value" x="${(x1 + 10).toFixed(1)}" y="${cy - 2}">${fmt(r.med)} req/s${r.failedRuns ? ' ⚠' : ''}</text>\n`;
     s += `<text class="sub" x="${(x1 + 10).toFixed(1)}" y="${cy + 15}">p95 ${Math.round(r.p95)} µs${range}</text>\n`;
     s += `</g>\n`;
@@ -303,6 +371,10 @@ const section = (title, items) => {
 };
 s += `<line class="rule" x1="24" x2="${W - 24}" y1="${y - 34}" y2="${y - 34}"/>\n`;
 section('Key numbers', bullets);
+if (tunedRows.length) {
+    y += 10;
+    section('What the tuned versions change', tunedRows.map(r => [r.name + ':', r.meta.change || '']));
+}
 if (notes.length) { y += 10; section('Notes', notes); }
 const H = Math.round(y + 6);
 
@@ -311,14 +383,16 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" wid
 <title id="t">${esc(title)}</title>
 <desc id="d">${esc(`Median requests per second (${scenario} scenario): ` + rows.map(r => `${r.name} ${fmt(r.med)}`).join('; ') + '.')}</desc>
 <style>
-  svg { --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --grid:#e1e0d9; --base:#c3c2b7; --bar:#2a78d6; --hover:#f1f0ec; }
+  svg { --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --grid:#e1e0d9; --base:#c3c2b7; --bar:#2a78d6; --bar2:#eb6834; --hover:#f1f0ec; }
   @media (prefers-color-scheme: dark) {
-    svg { --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --grid:#2c2c2a; --base:#383835; --bar:#3987e5; --hover:#242423; }
+    svg { --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --grid:#2c2c2a; --base:#383835; --bar:#3987e5; --bar2:#d95926; --hover:#242423; }
   }
   .bg { fill: var(--surface); }
   .grid { stroke: var(--grid); stroke-width: 1; }
   .base, .rule { stroke: var(--base); stroke-width: 1; }
   .bar { fill: var(--bar); }
+  .bar.tuned { fill: var(--bar2); }
+  .legend { font-size: 13px; fill: var(--ink2); }
   .hit { fill: transparent; }
   .row:hover .hit, .row:focus .hit { fill: var(--hover); }
   .row:focus { outline: none; }
@@ -337,8 +411,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" wid
 </style>
 <rect class="bg" width="100%" height="100%"/>
 <text class="h1" x="24" y="40">${esc(title)}</text>
-<text class="meta" x="24" y="64">${esc(meta1)}</text>
-<text class="meta" x="24" y="83">${esc(meta2)}</text>
+${metaLines.map((line, i) => `<text class="meta" x="24" y="${64 + 19 * i}">${esc(line)}</text>`).join('\n')}
 ${s}</svg>
 `;
 

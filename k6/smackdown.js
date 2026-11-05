@@ -3,19 +3,25 @@
 //   k6 run -e TARGET=go k6/smackdown.js
 //   k6 run -e TARGET=dotnet -e SCENARIO=ramp k6/smackdown.js
 //
-// TARGET:   go | node | node-cluster | dotnet | python | rust (or set BASE_URL to test any other server)
+// TARGET:   any target name from k6/run-all.sh, e.g. go, rust-epoll (or set BASE_URL)
 // SCENARIO: steady (default, same as the 2021 runs: 10 VUs for 30s)
 //           ramp   (10 -> 100 VUs over 1m, then 30s at 100)
 import http from 'k6/http';
 import { check } from 'k6';
 
 const TARGETS = {
-    go: 'http://localhost:3000/',
-    node: 'http://localhost:3001/',
-    'node-cluster': 'http://localhost:3001/',
-    dotnet: 'http://localhost:3002/',
-    python: 'http://localhost:3003/',
-    rust: 'http://localhost:3004/',
+    go: 'http://127.0.0.1:3000/',
+    node: 'http://127.0.0.1:3001/',
+    'node-cluster': 'http://127.0.0.1:3001/',
+    dotnet: 'http://127.0.0.1:3002/',
+    python: 'http://127.0.0.1:3003/',
+    rust: 'http://127.0.0.1:3004/',
+    'rust-tuned': 'http://127.0.0.1:3005/',
+    'go-fasthttp': 'http://127.0.0.1:3006/',
+    'node-fastify': 'http://127.0.0.1:3007/',
+    'python-granian': 'http://127.0.0.1:3008/',
+    'dotnet-tuned': 'http://127.0.0.1:3009/',
+    'rust-epoll': 'http://127.0.0.1:3010/',
 };
 
 const target = __ENV.TARGET || 'go';

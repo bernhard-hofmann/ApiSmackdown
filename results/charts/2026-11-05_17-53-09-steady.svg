@@ -1,0 +1,182 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 1612" width="960" height="1612" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<title id="t">API Smackdown, November 2026: requests per second</title>
+<desc id="d">Median requests per second (steady scenario): Rust (hand-written epoll) 185,227; Rust (tuned build) 177,630; Go (fasthttp) 175,962; Rust 175,032; Go 152,615; .NET (tuned) 140,715; Node (Fastify, all cores) 138,950; Python (Granian) 126,932; .NET 125,359; Node (all cores) 123,867; Node (one process) 111,029; Python 78,501.</desc>
+<style>
+  svg { --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --grid:#e1e0d9; --base:#c3c2b7; --bar:#2a78d6; --bar2:#eb6834; --hover:#f1f0ec; }
+  @media (prefers-color-scheme: dark) {
+    svg { --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --grid:#2c2c2a; --base:#383835; --bar:#3987e5; --bar2:#d95926; --hover:#242423; }
+  }
+  .bg { fill: var(--surface); }
+  .grid { stroke: var(--grid); stroke-width: 1; }
+  .base, .rule { stroke: var(--base); stroke-width: 1; }
+  .bar { fill: var(--bar); }
+  .bar.tuned { fill: var(--bar2); }
+  .legend { font-size: 13px; fill: var(--ink2); }
+  .hit { fill: transparent; }
+  .row:hover .hit, .row:focus .hit { fill: var(--hover); }
+  .row:focus { outline: none; }
+  text { fill: var(--ink); }
+  .h1 { font-size: 22px; font-weight: 700; }
+  .h2 { font-size: 16px; font-weight: 700; }
+  .meta, .sub, .tick, .axis-title { fill: var(--ink2); }
+  .meta { font-size: 13px; }
+  .name { font-size: 15px; font-weight: 600; }
+  .sub { font-size: 12px; }
+  .value { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tick, .axis-title { font-size: 12px; }
+  .body { font-size: 13.5px; }
+  .lead { font-weight: 700; }
+  .dot { fill: var(--ink2); }
+</style>
+<rect class="bg" width="100%" height="100%"/>
+<text class="h1" x="24" y="40">API Smackdown, November 2026: requests per second</text>
+<text class="meta" x="24" y="64">“Hello world” GET, identical 25-byte response · load from k6 2.3.0, 10 virtual users for 30 s, 1 warm-up + 3 measured runs each</text>
+<text class="meta" x="24" y="83">AMD Ryzen 7 9800X3D 8-Core Processor (16 threads); server and load tester on the same machine, cores not pinned</text>
+<rect class="bar" x="260" y="104" width="12" height="12" rx="2"/><text class="legend" x="278" y="114">Idiomatic</text>
+<rect class="bar tuned" x="360" y="104" width="12" height="12" rx="2"/><text class="legend" x="378" y="114">Tuned for speed</text>
+<line class="base" x1="260.0" x2="260.0" y1="134" y2="878"/>
+<text class="tick" x="260.0" y="896" text-anchor="middle">0</text>
+<line class="grid" x1="377.5" x2="377.5" y1="134" y2="878"/>
+<text class="tick" x="377.5" y="896" text-anchor="middle">50k</text>
+<line class="grid" x1="495.0" x2="495.0" y1="134" y2="878"/>
+<text class="tick" x="495.0" y="896" text-anchor="middle">100k</text>
+<line class="grid" x1="612.5" x2="612.5" y1="134" y2="878"/>
+<text class="tick" x="612.5" y="896" text-anchor="middle">150k</text>
+<line class="grid" x1="730.0" x2="730.0" y1="134" y2="878"/>
+<text class="tick" x="730.0" y="896" text-anchor="middle">200k</text>
+<text class="axis-title" x="260" y="918">Requests per second, median of 3 runs (higher is better)</text>
+<g class="row" tabindex="0"><title>Rust (hand-written epoll) (no framework · Rust 1.99.1): median 185,227 req/s; runs 184,939, 185,227, 185,804; avg latency 25.8 µs, p95 50.5 µs</title>
+<rect class="hit" x="0" y="134" width="960" height="62"/>
+<text class="name" x="246" y="163" text-anchor="end">Rust (hand-written epoll)</text>
+<text class="sub" x="246" y="180" text-anchor="end">no framework · Rust 1.99.1</text>
+<path class="bar tuned" d="M260,153 h431.3 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-431.3 z"/>
+<text class="value" x="705.3" y="163">185,227 req/s</text>
+<text class="sub" x="705.3" y="180">p95 51 µs · runs 184.9k–185.8k</text>
+</g>
+<g class="row" tabindex="0"><title>Rust (tuned build) (axum 0.8.9, tuned build · Rust 1.99.1): median 177,630 req/s; runs 179,663, 177,630, 177,351; avg latency 28.4 µs, p95 52.0 µs</title>
+<rect class="hit" x="0" y="196" width="960" height="62"/>
+<text class="name" x="246" y="225" text-anchor="end">Rust (tuned build)</text>
+<text class="sub" x="246" y="242" text-anchor="end">axum 0.8.9, tuned build · Rust 1.99.1</text>
+<path class="bar tuned" d="M260,215 h413.4 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-413.4 z"/>
+<text class="value" x="687.4" y="225">177,630 req/s</text>
+<text class="sub" x="687.4" y="242">p95 52 µs · runs 177.4k–179.7k</text>
+</g>
+<g class="row" tabindex="0"><title>Go (fasthttp) (fasthttp 1.76.0 · Go 1.27.3): median 175,962 req/s; runs 176,682, 175,962, 175,522; avg latency 28.8 µs, p95 54.8 µs</title>
+<rect class="hit" x="0" y="258" width="960" height="62"/>
+<text class="name" x="246" y="287" text-anchor="end">Go (fasthttp)</text>
+<text class="sub" x="246" y="304" text-anchor="end">fasthttp 1.76.0 · Go 1.27.3</text>
+<path class="bar tuned" d="M260,277 h409.5 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-409.5 z"/>
+<text class="value" x="683.5" y="287">175,962 req/s</text>
+<text class="sub" x="683.5" y="304">p95 55 µs · runs 175.5k–176.7k</text>
+</g>
+<g class="row" tabindex="0"><title>Rust (axum 0.8.9 · Rust 1.99.1): median 175,032 req/s; runs 176,432, 175,032, 175,018; avg latency 29.2 µs, p95 53.2 µs</title>
+<rect class="hit" x="0" y="320" width="960" height="62"/>
+<text class="name" x="246" y="349" text-anchor="end">Rust</text>
+<text class="sub" x="246" y="366" text-anchor="end">axum 0.8.9 · Rust 1.99.1</text>
+<path class="bar" d="M260,339 h407.3 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-407.3 z"/>
+<text class="value" x="681.3" y="349">175,032 req/s</text>
+<text class="sub" x="681.3" y="366">p95 53 µs · runs 175.0k–176.4k</text>
+</g>
+<g class="row" tabindex="0"><title>Go (net/http · Go 1.27.3): median 152,615 req/s; runs 152,481, 152,615, 153,263; avg latency 36.8 µs, p95 73.3 µs</title>
+<rect class="hit" x="0" y="382" width="960" height="62"/>
+<text class="name" x="246" y="411" text-anchor="end">Go</text>
+<text class="sub" x="246" y="428" text-anchor="end">net/http · Go 1.27.3</text>
+<path class="bar" d="M260,401 h354.6 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-354.6 z"/>
+<text class="value" x="628.6" y="411">152,615 req/s</text>
+<text class="sub" x="628.6" y="428">p95 73 µs · runs 152.5k–153.3k</text>
+</g>
+<g class="row" tabindex="0"><title>.NET (tuned) (bare handler · .NET 10.0.14): median 140,715 req/s; runs 141,059, 139,916, 140,715; avg latency 42.9 µs, p95 81.5 µs</title>
+<rect class="hit" x="0" y="444" width="960" height="62"/>
+<text class="name" x="246" y="473" text-anchor="end">.NET (tuned)</text>
+<text class="sub" x="246" y="490" text-anchor="end">bare handler · .NET 10.0.14</text>
+<path class="bar tuned" d="M260,463 h326.7 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-326.7 z"/>
+<text class="value" x="600.7" y="473">140,715 req/s</text>
+<text class="sub" x="600.7" y="490">p95 81 µs · runs 139.9k–141.1k</text>
+</g>
+<g class="row" tabindex="0"><title>Node (Fastify, all cores) (Fastify 5.12.7 cluster · Node 26.13.0): median 138,950 req/s; runs 141,190, 136,938, 138,950; avg latency 41.2 µs, p95 78.7 µs</title>
+<rect class="hit" x="0" y="506" width="960" height="62"/>
+<text class="name" x="246" y="535" text-anchor="end">Node (Fastify, all cores)</text>
+<text class="sub" x="246" y="552" text-anchor="end">Fastify 5.12.7 cluster · Node 26.13.0</text>
+<path class="bar tuned" d="M260,525 h322.5 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-322.5 z"/>
+<text class="value" x="596.5" y="535">138,950 req/s</text>
+<text class="sub" x="596.5" y="552">p95 79 µs · runs 136.9k–141.2k</text>
+</g>
+<g class="row" tabindex="0"><title>Python (Granian) (Granian 2.8.5 (RSGI) · Python 3.15.2): median 126,932 req/s; runs 128,455, 126,932, 120,316; avg latency 49.7 µs, p95 84.6 µs</title>
+<rect class="hit" x="0" y="568" width="960" height="62"/>
+<text class="name" x="246" y="597" text-anchor="end">Python (Granian)</text>
+<text class="sub" x="246" y="614" text-anchor="end">Granian 2.8.5 (RSGI) · Python 3.15.2</text>
+<path class="bar tuned" d="M260,587 h294.3 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-294.3 z"/>
+<text class="value" x="568.3" y="597">126,932 req/s</text>
+<text class="sub" x="568.3" y="614">p95 85 µs · runs 120.3k–128.5k</text>
+</g>
+<g class="row" tabindex="0"><title>.NET (minimal API · .NET 10.0.14): median 125,359 req/s; runs 125,359, 126,295, 125,121; avg latency 51.3 µs, p95 93.9 µs</title>
+<rect class="hit" x="0" y="630" width="960" height="62"/>
+<text class="name" x="246" y="659" text-anchor="end">.NET</text>
+<text class="sub" x="246" y="676" text-anchor="end">minimal API · .NET 10.0.14</text>
+<path class="bar" d="M260,649 h290.6 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-290.6 z"/>
+<text class="value" x="564.6" y="659">125,359 req/s</text>
+<text class="sub" x="564.6" y="676">p95 94 µs · runs 125.1k–126.3k</text>
+</g>
+<g class="row" tabindex="0"><title>Node (all cores) (Express 5.3.0 cluster · Node 26.13.0): median 123,867 req/s; runs 120,723, 123,867, 124,554; avg latency 49.7 µs, p95 87.9 µs</title>
+<rect class="hit" x="0" y="692" width="960" height="62"/>
+<text class="name" x="246" y="721" text-anchor="end">Node (all cores)</text>
+<text class="sub" x="246" y="738" text-anchor="end">Express 5.3.0 cluster · Node 26.13.0</text>
+<path class="bar" d="M260,711 h287.1 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-287.1 z"/>
+<text class="value" x="561.1" y="721">123,867 req/s</text>
+<text class="sub" x="561.1" y="738">p95 88 µs · runs 120.7k–124.6k</text>
+</g>
+<g class="row" tabindex="0"><title>Node (one process) (Express 5.3.0 · Node 26.13.0): median 111,029 req/s; runs 113,146, 111,029, 108,399; avg latency 66.9 µs, p95 123.9 µs</title>
+<rect class="hit" x="0" y="754" width="960" height="62"/>
+<text class="name" x="246" y="783" text-anchor="end">Node (one process)</text>
+<text class="sub" x="246" y="800" text-anchor="end">Express 5.3.0 · Node 26.13.0</text>
+<path class="bar" d="M260,773 h256.9 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-256.9 z"/>
+<text class="value" x="530.9" y="783">111,029 req/s</text>
+<text class="sub" x="530.9" y="800">p95 124 µs · runs 108.4k–113.1k</text>
+</g>
+<g class="row" tabindex="0"><title>Python (FastAPI 0.162.0 · Python 3.15.2): median 78,501 req/s; runs 78,572, 78,031, 78,501; avg latency 97.1 µs, p95 155.4 µs</title>
+<rect class="hit" x="0" y="816" width="960" height="62"/>
+<text class="name" x="246" y="845" text-anchor="end">Python</text>
+<text class="sub" x="246" y="862" text-anchor="end">FastAPI 0.162.0 · Python 3.15.2</text>
+<path class="bar" d="M260,835 h180.5 a4,4 0 0 1 4,4 v16 a4,4 0 0 1 -4,4 h-180.5 z"/>
+<text class="value" x="454.5" y="845">78,501 req/s</text>
+<text class="sub" x="454.5" y="862">p95 155 µs · runs 78.0k–78.6k</text>
+</g>
+<line class="rule" x1="24" x2="936" y1="936" y2="936"/>
+<text class="h2" x="24" y="970">Key numbers</text>
+<circle class="dot" cx="31" cy="993" r="3"/>
+<text class="body" x="44" y="998"><tspan class="lead">Rust (hand-written epoll) handled the most requests:</tspan> 185,227 req/s, 2.4× Python (78,501 req/s).</text>
+<circle class="dot" cx="31" cy="1023" r="3"/>
+<text class="body" x="44" y="1028"><tspan class="lead">Lowest p95 latency: Rust (hand-written epoll), 51 µs.</tspan> Highest: Python, 155 µs.</text>
+<circle class="dot" cx="31" cy="1053" r="3"/>
+<text class="body" x="44" y="1058"><tspan class="lead">Tuning vs the idiomatic version:</tspan> Python (Granian) +62%, Go (fasthttp) +15%, .NET (tuned) +12%, Node (Fastify, all cores)</text>
+<text class="body" x="44" y="1078">+12%, Rust (tuned build) +1%.</text>
+<circle class="dot" cx="31" cy="1103" r="3"/>
+<text class="body" x="44" y="1108"><tspan class="lead">The hand-written ceiling:</tspan> 185,227 req/s, 1.1× the fastest idiomatic server (Rust, 175,032 req/s).</text>
+<circle class="dot" cx="31" cy="1133" r="3"/>
+<text class="body" x="44" y="1138"><tspan class="lead">Node on all cores vs one process:</tspan> 12% more requests per second. A small gain like this suggests the load tester, not</text>
+<text class="body" x="44" y="1158">Node, was the limit.</text>
+<circle class="dot" cx="31" cy="1183" r="3"/>
+<text class="body" x="44" y="1188"><tspan class="lead">Some servers varied between runs:</tspan> Python (Granian) 120.3k–128.5k (6%), Node (one process) 108.4k–113.1k (4%), Node (all</text>
+<text class="body" x="44" y="1208">cores) 120.7k–124.6k (3%), Node (Fastify, all cores) 136.9k–141.2k (3%). The others stayed within 3%.</text>
+<circle class="dot" cx="31" cy="1233" r="3"/>
+<text class="body" x="44" y="1238"><tspan class="lead">Every run passed.</tspan> All 36 runs had zero failed requests, and every response had the expected body.</text>
+<text class="h2" x="24" y="1278">What the tuned versions change</text>
+<circle class="dot" cx="31" cy="1301" r="3"/>
+<text class="body" x="44" y="1306"><tspan class="lead">Rust (hand-written epoll):</tspan> No framework or async runtime: one thread per core, each with its own listening socket and</text>
+<text class="body" x="44" y="1326">epoll loop, and the whole response built once a second. Only handles GET; a demonstration of the ceiling, not a web server.</text>
+<circle class="dot" cx="31" cy="1351" r="3"/>
+<text class="body" x="44" y="1356"><tspan class="lead">Rust (tuned build):</tspan> The same axum code, built with link-time optimisation, a single code-generation unit, instructions</text>
+<text class="body" x="44" y="1376">for this exact CPU, and the mimalloc memory allocator.</text>
+<circle class="dot" cx="31" cy="1401" r="3"/>
+<text class="body" x="44" y="1406"><tspan class="lead">Go (fasthttp):</tspan> fasthttp instead of net/http: it reuses request and response objects instead of allocating new ones, but is</text>
+<text class="body" x="44" y="1426">not compatible with the standard library.</text>
+<circle class="dot" cx="31" cy="1451" r="3"/>
+<text class="body" x="44" y="1456"><tspan class="lead">.NET (tuned):</tspan> The slim builder with no logging or routing, one bare request handler, and the response bytes encoded once</text>
+<text class="body" x="44" y="1476">at startup.</text>
+<circle class="dot" cx="31" cy="1501" r="3"/>
+<text class="body" x="44" y="1506"><tspan class="lead">Node (Fastify, all cores):</tspan> Fastify instead of Express, one worker per core. Fastify prepares its routing and responses up</text>
+<text class="body" x="44" y="1526">front, so less work happens per request.</text>
+<circle class="dot" cx="31" cy="1551" r="3"/>
+<text class="body" x="44" y="1556"><tspan class="lead">Python (Granian):</tspan> Granian, a Python server written in Rust, calling a bare app through its own RSGI interface instead of</text>
+<text class="body" x="44" y="1576">FastAPI on Uvicorn. One worker per core.</text>
+</svg>

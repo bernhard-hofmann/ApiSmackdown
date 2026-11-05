@@ -1,0 +1,16 @@
+{
+  "name": "node-fastify",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.js",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "start": "NODE_ENV=production node server.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "fastify": "5.12.7"
+  }
+}

@@ -3,6 +3,7 @@ node_modules/
 bin/
 obj/
 go-stdlib/server
+go-fasthttp/server
 target/
 .venv/
 __pycache__/

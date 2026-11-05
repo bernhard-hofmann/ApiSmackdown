@@ -6,3 +6,14 @@ edition = "2024"
 [dependencies]
 axum = "0.8.9"
 tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net"] }
+mimalloc = { version = "0.1.52", optional = true }
+
+[features]
+mimalloc = ["dep:mimalloc"]
+
+# Used by the "rust-tuned" target, together with RUSTFLAGS="-C target-cpu=native".
+[profile.tuned]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+panic = "abort"

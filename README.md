@@ -2,7 +2,14 @@
 
 This repo is intended to allow comparison of the performance and simplicity (maintenance costs) of various API backend languages and frameworks.
 
-Every server answers `GET /` with the same 25-byte `text/plain; charset=utf-8` body and the same minimal headers (`Content-Type`, `Content-Length`, `Date`), so the bytes on the wire are comparable. The one exception is Node, which always adds `Connection` and `Keep-Alive` headers on keep-alive connections (about 40 bytes).
+Every server answers `GET /` with the same 25-byte `text/plain; charset=utf-8` body and the same minimal headers (`Content-Type`, `Content-Length`, `Date`), so the bytes on the wire are comparable. Two exceptions can't be switched off: Node always adds `Connection` and `Keep-Alive` headers on keep-alive connections (about 40 bytes), and Granian adds `server: granian` (about 16 bytes).
+
+There are two groups of servers:
+
+- **Idiomatic:** the normal way to write a small API in each language, with its most common framework. This is what the "simplicity and maintenance cost" comparison is about.
+- **Tuned for speed:** what each language can do when speed is all that matters, by changing framework, build or runtime settings, or dropping the framework altogether. These are harder to maintain, and the hand-written epoll server isn't a real web server at all.
+
+### Idiomatic
 
 | Server | Folder | Port | Versions |
 |---|---|---|---|
@@ -12,7 +19,18 @@ Every server answers `GET /` with the same 25-byte `text/plain; charset=utf-8` b
 | Python, FastAPI on Uvicorn | `python-fastapi/` | 3003 | Python 3.15, FastAPI 0.162, Uvicorn 0.54 |
 | Rust, axum | `rust-axum/` | 3004 | Rust 1.99, axum 0.8, Tokio 1.54 |
 
-The devcontainer installs Go, Node, the .NET SDK, Rust, uv (for Python) and k6, so the setup below works out of the box there.
+### Tuned for speed
+
+| Target | Folder | Port | What changes |
+|---|---|---|---|
+| `go-fasthttp` | `go-fasthttp/` | 3006 | fasthttp 1.76 instead of `net/http`: reuses request and response objects instead of allocating, but isn't compatible with the standard library |
+| `node-fastify` | `node-fastify/` | 3007 | Fastify 5.12 instead of Express, one worker per core |
+| `dotnet-tuned` | `dotnet-10-tuned/` | 3009 | Slim builder, no logging or routing, one bare handler, response bytes encoded once |
+| `python-granian` | `python-granian/` | 3008 | Granian 2.8 (a Python server written in Rust) with a bare app on its RSGI interface, instead of FastAPI on Uvicorn |
+| `rust-tuned` | `rust-axum/` | 3005 | The same axum code, built with link-time optimisation, one code-generation unit, for this exact CPU, with the mimalloc allocator |
+| `rust-epoll` | `rust-epoll/` | 3010 | No framework or async runtime: one thread per core, each with its own socket and epoll loop, the response built once a second. Only answers GET; a demonstration of the ceiling |
+
+The devcontainer installs Go, Node, the .NET SDK, Rust, uv (for Python), k6 and oha, so the setup below works out of the box there.
 
 ## Setups
 
@@ -68,44 +86,69 @@ cargo build --release && ./target/release/rust-axum
 
 Tokio, axum's runtime, uses every core by default.
 
-### k6 (load testing)
+### Tuned servers
 
-k6 v2 is installed in the devcontainer. Otherwise follow [the k6 installation guide](https://grafana.com/docs/k6/latest/set-up/install-k6/).
+`run-all.sh` builds and starts these with the right settings. By hand:
+
+```bash
+cd go-fasthttp && go build -o server . && ./server
+cd node-fastify && npm ci && npm start
+cd dotnet-10-tuned && dotnet run -c Release --no-launch-profile
+cd python-granian && uv sync && .venv/bin/granian app:app --interface rsgi --port 3008 --workers $(nproc) --runtime-mode st --http 1 --no-ws --loop uvloop --no-access-log
+cd rust-axum && RUSTFLAGS="-C target-cpu=native" cargo build --profile tuned --features mimalloc && PORT=3005 ./target/tuned/rust-axum
+cd rust-epoll && RUSTFLAGS="-C target-cpu=native" cargo build --release && ./target/release/rust-epoll
+```
+
+`target-cpu=native` builds for the CPU it's compiled on, so build the Rust servers on the machine that runs the benchmark.
+
+### Load generators
+
+- **k6** (v2) runs the `steady` and `ramp` scenarios. It's flexible and checks every response, but runs JavaScript for every request, which limits how much load it can generate. Follow [the k6 installation guide](https://grafana.com/docs/k6/latest/set-up/install-k6/) outside the devcontainer.
+- **oha** (1.16) runs the `oha` scenario. Written in Rust, it generates far more load on the same cores, so it shows the differences between fast servers that k6 hides. It doesn't check response bodies, so the script checks that every response was a 200 with a 25-byte body. Get it from [its releases](https://github.com/hatoo/oha/releases) outside the devcontainer.
 
 ## Running the benchmark
 
-One command builds each server, starts it, runs k6 against it, and stops it again, so only one server runs at a time:
+One command builds each server, starts it, runs the load generator against it, and stops it again, so only one server runs at a time:
 
 ```bash
 k6/run-all.sh            # every server: 1 warm-up + 3 saved runs each
-k6/run-all.sh --check    # start each server, show its response and headers, stop it (no k6)
+k6/run-all.sh --check    # start each server, show its response and headers, stop it (no load)
 ```
+
+To show what's possible, use the heavy test with the server and the load generator on separate cores (the example splits a 16-thread CPU in half):
+
+```bash
+SCENARIO=oha SERVER_CPUS=0-7 LOAD_CPUS=8-15 k6/run-all.sh
+```
+
+All twelve servers with three 30-second runs and a warm-up each take roughly 20–25 minutes.
 
 Optional settings:
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `TARGETS` | `go node node-cluster dotnet python rust` | Servers to test, in order |
-| `SCENARIO` | `steady` | `steady` is 10 VUs for 30s, same as 2021. `ramp` goes from 10 to 100 VUs. |
+| `TARGETS` | `all` | Servers to test, in order. `idiomatic`, `tuned` and `all` expand to their groups, and can be mixed with names, e.g. `TARGETS="tuned go"` |
+| `SCENARIO` | `steady` | `steady`: k6, 10 VUs for 30s, same as 2021. `ramp`: k6, 10 to 100 VUs. `oha`: oha with many connections, the heavy test. |
+| `OHA_CONNECTIONS`, `OHA_DURATION` | `256`, `30s` | Connections and run length for the `oha` scenario |
 | `RUNS` | `3` | Saved runs per server, after the warm-up |
 | `NODE_BIN` | `/opt/node-26/bin/node` if present, else `node` | Node binary |
-| `WORKERS` | one per core | Worker processes for `node-cluster` and `python` |
-| `SERVER_CPUS`, `K6_CPUS` | unset | Pin the server and k6 to separate cores, e.g. `SERVER_CPUS=0-3 K6_CPUS=4-7` |
+| `WORKERS` | one per core | Worker processes or threads for `node-cluster`, `node-fastify`, `python`, `python-granian` and `rust-epoll` |
+| `SERVER_CPUS`, `LOAD_CPUS` | unset | Pin the server and the load generator to separate cores, e.g. `SERVER_CPUS=0-7 LOAD_CPUS=8-15`. `K6_CPUS` still works as the old name for `LOAD_CPUS`. |
 
 Example: `SCENARIO=ramp TARGETS="go dotnet" k6/run-all.sh`
 
-- k6 summaries go to `results/<target>-<scenario>-<n>.json`. Rerunning a server replaces its earlier runs for that scenario.
+- k6 and oha summaries go to `results/<target>-<scenario>-<n>.json`. Rerunning a server replaces its earlier runs for that scenario.
 - Versions and machine details go to `results/info/<target>-<scenario>.json`.
 - Server output goes to `results/logs/<target>.log`.
 - At the end, a chart of every saved result for the scenario is drawn to `results/charts/<date>_<time>-<scenario>.svg` (UTC), and the Results section below is updated to show it.
 - A run fails if any request errors or returns the wrong body.
 - The script stops if a server's port is already in use.
 
-To test one server you started yourself, run the k6 script directly, e.g. `k6 run -e TARGET=go k6/smackdown.js`.
+To test one server you started yourself, run a load generator directly, e.g. `k6 run -e TARGET=go k6/smackdown.js` or `oha -z 30s -c 256 http://127.0.0.1:3000/`.
 
 ### Chart
 
-`k6/chart.js` turns the saved results into a stand-alone SVG: one bar per server (median requests per second, with p95 latency and the range across runs), the test settings and machine, and a "Key numbers" section calculated from the results (ranking, latency, run-to-run variation, errors). `run-all.sh` runs it automatically; to redraw by hand:
+`k6/chart.js` turns the saved results (k6 or oha) into a stand-alone SVG: one bar per server (median requests per second, with p95 latency and the range across runs), idiomatic and tuned servers in different colours, the test settings and machine, and a "Key numbers" section calculated from the results (ranking, latency, how much tuning gained over each idiomatic version, the hand-written ceiling, run-to-run variation, errors). When tuned servers are included, a section explains what each one changes. `run-all.sh` runs it automatically; to redraw by hand:
 
 ```bash
 node k6/chart.js                              # results/charts/<date>_<time>-steady.svg
@@ -124,15 +167,16 @@ Interpretation, such as why results changed, is up to you: put it in a notes fil
 ### Making runs fair
 
 - Leave nothing else busy on the machine while it runs.
-- k6 needs CPU too. On a single machine, set `SERVER_CPUS` and `K6_CPUS` so they don't compete for the same cores.
-- Report the median of the saved runs, along with the hardware and the exact versions (`go version`, `node -v`, `dotnet --version`, `k6 version`).
+- The load generator needs CPU too. On a single machine, set `SERVER_CPUS` and `LOAD_CPUS` so they don't compete for the same cores.
+- With only 10 virtual users (`steady`), k6 is usually the limit, so fast servers look closer together than they are. Use `oha` to compare the fastest ones.
+- Report the median of the saved runs, along with the hardware and the exact versions (the script records these in `results/info/` and shows them on the chart).
 
 ## Results
 
 <!-- latest-chart:start -->
-Latest results (2026-11-05 13:18 UTC, steady scenario). Earlier charts are in [`results/charts/`](results/charts/).
+Latest results (2026-11-05 17:53 UTC, steady scenario). Earlier charts are in [`results/charts/`](results/charts/).
 
-![Latest results](results/charts/2026-11-05_13-18-32-steady.svg)
+![Latest results](results/charts/2026-11-05_17-53-09-steady.svg)
 <!-- latest-chart:end -->
 
 ### 2021 results (Go 1.17 + Fiber v1, Node + Express 4, .NET 6 RC1)
